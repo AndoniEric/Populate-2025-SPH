@@ -35,13 +35,20 @@ a = 0.5
 cutoff_radius = a*6
 
 #The angular velocity
-omega = np.pi/100
+omega = np.pi/10
+omega = np.pi/3
+
+#omega = np.pi
+#omega = np.pi/100
+#omega = np.pi/10**(4)
+
 #The phase
 #phi = np.pi/6
 phi = 0
 
 #The viscousity
 eta = 10**(-5) #Air
+
 
 #fictional parameters
 A = 2
@@ -54,13 +61,17 @@ m = 10**(-5)
 dt = 10**(-4)
 
 #The final time
-t_end = dt*10**(4)
+#t_end = dt*10**(4)
+t_end = dt*10**(5)
+
 
 #The amount of particles
 N = 30
 
 #How often to save the calculated values
 saved_iteration = 20
+saved_iteration = 100
+
 
 #################
 ### FUNCTIONS ###
@@ -160,7 +171,11 @@ def force_excluded_volume_force(particle_i, particle_j, a=0.5, F_0 = 2, A = 2, x
 #Initial position of the particles:
     #put them all on a line
 x_start_0 = 0
-x_end_0 = (2+1)*N*a
+#x_end_0 = (2+1)*N*a
+
+x_end_0 = (2)*N*a
+
+
 y_start_0 = 0
 y_end_0 = 0
 
@@ -194,6 +209,7 @@ saved_particles_positions = [particles_position_0]
 current_t = 0
 
 saved_times = [current_t]
+saved_angles = []
 
 current_iteration = 0
 
@@ -239,18 +255,35 @@ while current_t < t_end:
         # v^{(n+1)} = dt*F_{tot}/m + v^{(n)}
         particles_new_velocity.append(particle_i.velocity + dt*F_tot/m)
     
+    
+    #Calculate the angle between middle of the chain and the magnetic field
+    #Select particles in the middle
+    particle_left = particles_list[N//2-1] #If even get the middle to left and if uneven then it is the one left of the middle
+    particle_right = particles_list[(N+1)//2] #If even get the middle to right and if uneven then it is the one right of the middle
+
+    r_left_right = particle_right.position - particle_left.position
+    r_left_right_norm = calculate_distance_fun(particle_left.position, particle_right.position)
+    e_left_right = r_left_right/r_left_right_norm
+
+    angle_middle_b = np.arccos(np.dot(e_left_right, b))
+
+
+
     #After iterated over all the particles, can update the parameters
     current_t += dt
     current_iteration += 1
     for i in range(N):
         particles_list[i].position = particles_new_positions[i]
         particles_list[i].velocity = particles_new_velocity[i]
-    
+        
+        
+
     #Save values
     if current_iteration%saved_iteration == 0:
         #Save the positions
         saved_particles_positions.append(particles_new_positions)
         saved_times.append(current_t)
+        saved_angles.append(angle_middle_b)
     
     
     #Print progress
@@ -332,3 +365,23 @@ ani = animation.FuncAnimation(fig, animate, len(saved_particles_positions_np), i
 
 fig.tight_layout()
 plt.show()
+
+
+
+
+###################
+### Plot angles ###
+###################
+
+fig, ax = plt.subplots(figsize=(10,6))
+
+ax.plot(saved_times[1:], saved_angles)
+
+ax.set_title('Angle between the middle of the chain and the magnetic field')
+
+ax.set_xlabel('Time')
+ax.set_ylabel('Angle')
+
+fig.tight_layout()
+plt.show()
+
