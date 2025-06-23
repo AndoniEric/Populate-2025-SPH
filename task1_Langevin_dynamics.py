@@ -35,12 +35,16 @@ a = 0.5
 cutoff_radius = a*6
 
 #The angular velocity
-omega = np.pi/10
 omega = np.pi/3
 
-#omega = np.pi
-#omega = np.pi/100
-#omega = np.pi/10**(4)
+omega = np.pi/2
+
+omega = 4.689739328080042/2
+omega = 4.689739328080042/2*0.95
+
+omega = [np.pi/6, np.pi/4, np.pi/3, np.pi/2, np.pi*3/4, np.pi, np.pi*3/2][4]
+
+omega = np.pi
 
 #The phase
 #phi = np.pi/6
@@ -60,13 +64,19 @@ m = 10**(-5)
 #The timestep
 dt = 10**(-4)
 
+
+
 #The final time
-#t_end = dt*10**(4)
-t_end = dt*10**(5)
+t_end = dt*10**(4)
+#t_end = dt*10**(5)
+
+t_end = 3*dt*10**(4)
 
 
 #The amount of particles
-N = 30
+N = 20
+#N = 30
+
 
 #How often to save the calculated values
 saved_iteration = 20
@@ -200,6 +210,24 @@ for i in range(N):
 
 
 saved_particles_positions = [particles_position_0]
+
+
+################################
+### Calculate crit frequency ###
+################################
+
+print("The omega chosen:", omega)
+
+
+l_bar = 2
+omega_crit_theory = F_0/(2*np.pi*eta*a**2)*((N-1)/N) * (l_bar)**(-3) * ((1/4)*(N**2 - 1)*l_bar**(2) +4)**(-1)
+print("The critical omega according to the theory is:", omega_crit_theory)
+
+mu_0_M_2 = F_0*3/(4*np.pi)*(1/a**2)
+omega_crit_36 = 1/12*(mu_0_M_2)/(eta)*(N-1)/(N*(N**2 + 3))
+print("The critical omega according to the formula 36 is:", omega_crit_36)
+
+
 
 
 ########################
@@ -367,6 +395,13 @@ fig.tight_layout()
 plt.show()
 
 
+save_animation_boolean = False
+if save_animation_boolean:
+    # saving to m4 using ffmpeg writer
+    writervideo = animation.FFMpegWriter(fps=30)
+
+    #For pi/3 and N=30
+    ani.save('animation_langevin_N_'+str(N)+'.mp4', writer=writervideo)
 
 
 ###################
@@ -377,11 +412,34 @@ fig, ax = plt.subplots(figsize=(10,6))
 
 ax.plot(saved_times[1:], saved_angles)
 
-ax.set_title('Angle between the middle of the chain and the magnetic field')
+ax.set_title('Angle between the middle of the chain and the magnetic field for $\omega$='+str(omega))
 
 ax.set_xlabel('Time')
 ax.set_ylabel('Angle')
 
 fig.tight_layout()
 plt.show()
+
+
+
+#######################################
+### Calculate distance consequetive ###
+#######################################
+
+mean_distances = []
+
+for time_iter in range(len(saved_particles_positions)):
+    sum_time = 0
+    for i in range(len(saved_particles_positions[time_iter])-1):
+        sum_time += calculate_distance_fun(saved_particles_positions[time_iter][i], saved_particles_positions[time_iter][i+1])
+    
+    mean_distance = sum_time/len(saved_particles_positions)
+    mean_distances.append(mean_distance)
+
+print(mean_distances)
+
+
+print(np.mean(mean_distances))
+    
+
 
