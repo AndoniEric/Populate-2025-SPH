@@ -253,7 +253,7 @@ print("The critical omega according to the formula 36 is:", omega_crit_36)
 ##########################
 
 
-
+#THIS IS 3D REYNOLDS!
 Re_nr = (m/(4/3*np.pi*a**3))*a*(N*a*omega)/(eta)
 print("Reynolds Number:", Re_nr)
 #We want below one
