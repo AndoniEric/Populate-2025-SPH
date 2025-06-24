@@ -27,6 +27,9 @@ from matplotlib.patches import Circle
 #The dipole-dipole force amplitude
 F_0 = 0.25
 
+#Paper
+#F_0 = 1.63
+
 #The radius of the particles
 a = 0.5
 
@@ -34,17 +37,27 @@ a = 0.5
 #The radius for which the particles dont account of each other anymore
 cutoff_radius = a*6
 
+
 #The angular velocity
 omega = np.pi/3
 
 omega = np.pi/2
 
-omega = 4.689739328080042/2
-omega = 4.689739328080042/2*0.95
 
 omega = [np.pi/6, np.pi/4, np.pi/3, np.pi/2, np.pi*3/4, np.pi, np.pi*3/2][4]
 
+
 omega = np.pi
+omega = 2*np.pi
+
+omega = 1.5*np.pi#Breaks for N=10
+omega = 1.25*np.pi #Doesnt break for N=10
+omega = 1.35*np.pi #Breaks for N=10 but then reconnects together and remains in a chain (m=10**(-5))
+
+omega = 1.35*np.pi #Doesnt break for N=10 (m=10**(-7))
+omega = 2*np.pi #Doesnt break for N=10 (m=10**(-7))
+omega = 5*np.pi
+omega = 3*np.pi
 
 #The phase
 #phi = np.pi/6
@@ -52,7 +65,8 @@ phi = 0
 
 #The viscousity
 eta = 10**(-5) #Air
-
+#Paper value
+#eta = 0.2
 
 #fictional parameters
 A = 2
@@ -61,9 +75,10 @@ xi = 10
 #The mass
 m = 10**(-5)
 
+m = 10**(-7)
+
 #The timestep
 dt = 10**(-4)
-
 
 
 #The final time
@@ -71,17 +86,20 @@ t_end = dt*10**(4)
 #t_end = dt*10**(5)
 
 t_end = 3*dt*10**(4)
+t_end = 5*dt*10**(4)
 
 
 #The amount of particles
 N = 20
 #N = 30
-
+N = 10
 
 #How often to save the calculated values
 saved_iteration = 20
 saved_iteration = 100
+saved_iteration = 300
 
+saved_iteration = 25
 
 #################
 ### FUNCTIONS ###
@@ -220,6 +238,7 @@ print("The omega chosen:", omega)
 
 
 l_bar = 2
+
 omega_crit_theory = F_0/(2*np.pi*eta*a**2)*((N-1)/N) * (l_bar)**(-3) * ((1/4)*(N**2 - 1)*l_bar**(2) +4)**(-1)
 print("The critical omega according to the theory is:", omega_crit_theory)
 
@@ -229,6 +248,15 @@ print("The critical omega according to the formula 36 is:", omega_crit_36)
 
 
 
+##########################
+### Calculate Reynolds ###
+##########################
+
+
+
+Re_nr = (m/(4/3*np.pi*a**3))*a*(N*a*omega)/(eta)
+print("Reynolds Number:", Re_nr)
+#We want below one
 
 ########################
 ### Looping function ###
@@ -427,19 +455,23 @@ plt.show()
 #######################################
 
 mean_distances = []
+max_distance = 0
 
 for time_iter in range(len(saved_particles_positions)):
     sum_time = 0
     for i in range(len(saved_particles_positions[time_iter])-1):
-        sum_time += calculate_distance_fun(saved_particles_positions[time_iter][i], saved_particles_positions[time_iter][i+1])
+        distance_i_j = calculate_distance_fun(saved_particles_positions[time_iter][i], saved_particles_positions[time_iter][i+1])
+        sum_time += distance_i_j
+        if distance_i_j >= max_distance:
+            max_distance = distance_i_j
     
-    mean_distance = sum_time/len(saved_particles_positions)
+    mean_distance = sum_time/(len(saved_particles_positions[time_iter])-1)
     mean_distances.append(mean_distance)
 
-print(mean_distances)
-
+#print(mean_distances)
 
 print(np.mean(mean_distances))
-    
 
+if max_distance> 6*a:
+    print("The chain broke: max distance >", 6*a)
 
