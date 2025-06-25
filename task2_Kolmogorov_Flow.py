@@ -23,14 +23,13 @@ from matplotlib.patches import Circle
 ### PARAMETERS ###
 ##################
 
-#Reference density (background density)
-rho_0 = 0.1
-
 #The force amplitude
 F_0 = 0.5
+#F_0 = 0
 
 #The viscousity
 eta = 10**(-5) #Air
+
 
 #The distance we consider for the accounting of their force on the particle
 cutoff_radius = 0.3
@@ -76,17 +75,27 @@ max_index_x = math.ceil(xmax/cutoff_radius)-1 #if the cutoff_radius is a divider
 max_index_y = math.ceil(ymax/cutoff_radius)-1 
 
 
+#Reference density (background density)
+#rho_0 = 0.1
+#rho_0 = 10**(-8)
+#rho_0 =  N/((xmax-xmin)*(ymax-ymin)) * mass_particle
+rho_0 = mass_particle
+
 
 #Timestep
 dt = 10**(-4)
+
+dt = 10**(-6)
 
 #Time end of the simulation
 t_end = 3*dt*10**(1)
 
 t_end = dt*100
 
+t_end = 10**(3) *dt
+
 #How often to save the calculated values
-saved_iteration = 1
+saved_iteration = 5
 
 #################
 ### FUNCTIONS ###
@@ -374,12 +383,11 @@ def pressure_force_fun(particle_i, particle_j, W_ij_der, e_ij):
     #OUTPUTS
     #a vector/numpy array; the pressure force that particle j is applying on particle i
 
-    pressure_force = (particle_i.pressure/(particle_i.numberdensity**2) + particle_j.pressure/(particle_j.numberdensity**2))*(W_ij_der*e_ij)
+    pressure_force = - (particle_i.pressure/(particle_i.numberdensity**2) + particle_j.pressure/(particle_j.numberdensity**2))*(W_ij_der*e_ij)
     
     return pressure_force
 
 
-#UNSURE: what is v_ij ???
 def viscousity_force_fun(particle_i, particle_j, W_ij_der, r_ij_norm, e_ij, eta):
     #INPUTS
     #particle_i is of the particle class: particle_i is the one the force is being calculated for
@@ -395,7 +403,8 @@ def viscousity_force_fun(particle_i, particle_j, W_ij_der, r_ij_norm, e_ij, eta)
 
     if r_ij_norm != 0:
         #make sure it isnt the same particle as otherwise divide by zero!
-        viscousity_force = C*eta*(W_ij_der/(r_ij_norm*particle_i.numberdensity*particle_j.numberdensity))*e_ij*(np.dot(e_ij, particle_i.velocity))
+        v_ij = particle_i.velocity - particle_j.velocity
+        viscousity_force = C*eta*(W_ij_der/(r_ij_norm*particle_i.numberdensity*particle_j.numberdensity))*e_ij*(np.dot(e_ij, v_ij))
     else:
         #when it is the same particle, then e_ij is zero so in the limit equals to zero
         viscousity_force = 0
@@ -542,7 +551,7 @@ progress_percentage = 0
 
 start_time_py = time.time()
 
-
+nan_message = False
 
 
 while current_t < t_end:
@@ -584,21 +593,24 @@ while current_t < t_end:
 
         #print(particles_list[i].position)
 
-        if np.isnan(np.sum(particles_list[i].position)):
+        if np.isnan(np.sum(particles_list[i].position)) and not nan_message:
             print("GOT A NAN at iteration:", current_iteration)
             print(particles_list[i].position)
             print(particles_list[i].velocity)
             print()
-        if np.isnan(np.sum(particles_list[i].velocity)):
+            nan_message = True
+        if np.isnan(np.sum(particles_list[i].velocity)) and not nan_message:
             print("GOT A NAN at iteration:", current_iteration)
             print(particles_list[i].position)
             print(particles_list[i].velocity)
             print()
+            nan_message = True
+
         
     #Calculate the correct numberdensities now
     for particle_i in particles_list:
         particles_i_close = particles_close_fun(particle_i, particles_list)
-        numberdensity_fun(particle_i, particles_i_close, cutoff_radius)
+        particle_i.numberdensity = numberdensity_fun(particle_i, particles_i_close, cutoff_radius)
 
         
 
@@ -652,4 +664,10 @@ ani = animation.FuncAnimation(fig, animate, len(saved_particles_positions_np), i
 
 fig.tight_layout()
 plt.show()
+
+
+
+##################
+### Plot E_kin ###
+##################
 
