@@ -552,10 +552,11 @@ for particle_i in particles_list:
 
 saved_particles_positions = [particles_position_0]
 
-saved_particles_velocity = []
+particles_velocity_0 = []
 for particle_i in particles_list:
-    saved_particles_velocity.append(particle_i.velocity)
+    particles_velocity_0.append(particle_i.velocity)
 
+saved_particles_velocity = [particles_velocity_0]
 
 
 
@@ -620,7 +621,6 @@ while current_t < t_end:
         particles_new_positions.append(position_periodic_fun(particle_new_position_i, boundary_max))
         #Velocity: m dv/dt = F_{tot}
         # v^{(n+1)} = dt*F_{tot}/m + v^{(n)}
-        print(particle_i.velocity)
         particles_new_velocity.append(particle_i.velocity + dt*F_tot/particle_i.mass)
 
     
@@ -663,7 +663,7 @@ while current_t < t_end:
     if current_iteration%saved_iteration == 0:
         #Save the positions
         saved_particles_positions.append(particles_new_positions)
-        saved_particles_velocity.append(list(particles_new_velocity))
+        saved_particles_velocity.append(particles_new_velocity)
 
         saved_times.append(current_t)
     
@@ -686,7 +686,7 @@ analytical_fastest_position_y_float = (ymax-ymin)/4
 analytical_fastest_velocity_x = v_max*(np.sin(2*np.pi/(ymax-ymin)*analytical_fastest_position_y_float))
 analytical_fastest_position_x = [(xmax-xmin)/2]
 for i in range(1, len(saved_times)):
-    analytical_fastest_position_x_new_pos = analytical_fastest_position_x[-1] + dt*analytical_fastest_velocity_x
+    analytical_fastest_position_x_new_pos = analytical_fastest_position_x[-1] + saved_iteration*dt*analytical_fastest_velocity_x
     analytical_fastest_position_x.append(position_periodic_float_fun(analytical_fastest_position_x_new_pos, xmax))
 
 analytical_fastest_position_y = analytical_fastest_position_y_float*np.ones(len(analytical_fastest_position_x))
@@ -735,7 +735,6 @@ plt.show()
 ### Plot v ###
 ##############
 
-print(saved_particles_velocity)
 saved_particles_velocity_np = np.array(saved_particles_velocity)
 
 saved_particles_velocity_x_row_0 = saved_particles_velocity_np[:,0,0]
@@ -753,10 +752,75 @@ ax.plot(saved_times, saved_particles_velocity_x_row_0, label=str(x_row_0))
 ax.plot(saved_times, saved_particles_velocity_x_row_1, label=str(x_row_1))
 ax.plot(saved_times, saved_particles_velocity_x_row_2, label=str(x_row_2))
 
+
+ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_0), linestyle=':', label=r'v at '+str(x_row_0))
+ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_1), linestyle=':', label=r'v at '+str(x_row_1))
+ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_2), linestyle=':', label=r'v at '+str(x_row_2))
+
+
 ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max, linestyle=':', label=r'v_{0}')
+
+plt.legend()
+
+
+ax.set_xlabel('Time')
+ax.set_ylabel('Velocity')
+
+fig.tight_layout()
+plt.show()
+
+
+
+
+##################
+### Plot E_kin ###
+##################
+
+
+E_kin = []
+E_kin_per_part = []
+for time_iter in range(len(saved_particles_velocity)):
+    E_kin_time = 0
+    #Get energy for each particle and sum up
+    for particle_vel_iter in range(len(saved_particles_velocity[time_iter])):
+        #Energy for each particle is 1/2 m (v)^2
+        E_kin_part = np.sum(mass_particle*saved_particles_velocity[time_iter][particle_vel_iter]**2)/2
+        E_kin_time += E_kin_part
+    E_kin.append(E_kin_time)
+    
+    #Get mean energy per particle
+    E_kin_time_per_part = E_kin_time/N
+    E_kin_per_part.append(E_kin_time_per_part)
+
+
+    
+    
+fig, ax = plt.subplots(figsize=(10,6))
+
+ax.plot(saved_times, E_kin)
+
+ax.set_xlabel('Time')
+ax.set_ylabel('Energy')
+
+ax.set_title(r'Total Kinetic Energy}')
 
 plt.legend()
 
 fig.tight_layout()
 plt.show()
 
+
+
+fig, ax = plt.subplots(figsize=(10,6))
+
+ax.plot(saved_times, E_kin_per_part)
+
+ax.set_xlabel('Time')
+ax.set_ylabel('Energy')
+
+ax.set_title('Mean Kinetic Energy')
+
+plt.legend()
+
+fig.tight_layout()
+plt.show()
