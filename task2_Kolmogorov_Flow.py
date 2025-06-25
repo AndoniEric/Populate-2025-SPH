@@ -30,11 +30,16 @@ F_0 = 0.5
 #The viscousity
 eta = 10**(-5) #Air
 
+eta = 10**(-2)
+
 
 #The distance we consider for the accounting of their force on the particle
 cutoff_radius = 0.3
 
-v_sound = 343 #speed of sound in air
+#speed of sound in air
+v_sound = 343 
+v_sound = 1352 #Chosen so 10x bigger than the max speed
+
 
 #mass of the particles
 mass_particle = 10**(-7)
@@ -87,12 +92,15 @@ dt = 10**(-4)
 
 dt = 10**(-6)
 
+
+
 #Time end of the simulation
 t_end = 3*dt*10**(1)
 
 t_end = dt*100
 
 t_end = 10**(3) *dt
+
 
 #How often to save the calculated values
 saved_iteration = 5
@@ -197,6 +205,22 @@ def position_periodic_fun(position, boundary_max):
     #return a numpy array as input was an np.array
     return np.array(position_periodic)
 
+def position_periodic_float_fun(position, xmax):
+    #INPUT
+    #position is a float; the positions
+    #xamx is a floats the values of the boundary (starts at 0)
+    #OUTPUT
+    #a float: the position of the particles such that periodic boundaries
+
+    #ASSUME THAT BOUNDARY MIN is zero!
+    boundary_min = 0
+
+
+    #First shift so boundary min is zero, then see if fall outside of te distance/domain then reshift
+    position_periodic = ((position-boundary_min)%(xmax-boundary_min) + boundary_min)
+    
+    #return a numpy array as input was an np.array
+    return position_periodic
 
 #Find the cell that the particle is in
 def cell_of_particle_fun(particle_ref, cutoff_radius=cutoff_radius):
@@ -520,7 +544,7 @@ for i in range(N_y):
 #Calculate the correct numberdensities now
 for particle_i in particles_list:
     particles_i_close = particles_close_fun(particle_i, particles_list)
-    numberdensity_fun(particle_i, particles_i_close, cutoff_radius)
+    particle_i.numberdensity = numberdensity_fun(particle_i, particles_i_close, cutoff_radius)
 
 particles_position_0 = []
 for particle_i in particles_list:
@@ -528,6 +552,26 @@ for particle_i in particles_list:
 
 saved_particles_positions = [particles_position_0]
 
+saved_particles_velocity = []
+for particle_i in particles_list:
+    saved_particles_velocity.append(particle_i.velocity)
+
+
+
+
+##########################
+### Calculate Reynolds ###
+##########################
+
+rho_start = particle_i.rho
+print(rho_start)
+g_0 = F_0/mass_particle
+v_max = rho_start*g_0/((4*np.pi**2)/((xmax-xmin)*(ymax-ymin))*eta)
+print(v_max)
+#THIS IS 3D REYNOLDS!
+Re_nr = (rho_start)*(xmax-xmin)*(v_max)/(eta)
+print("Reynolds Number:", Re_nr)
+#We want below one
 
 
 
@@ -576,6 +620,7 @@ while current_t < t_end:
         particles_new_positions.append(position_periodic_fun(particle_new_position_i, boundary_max))
         #Velocity: m dv/dt = F_{tot}
         # v^{(n+1)} = dt*F_{tot}/m + v^{(n)}
+        print(particle_i.velocity)
         particles_new_velocity.append(particle_i.velocity + dt*F_tot/particle_i.mass)
 
     
@@ -618,6 +663,8 @@ while current_t < t_end:
     if current_iteration%saved_iteration == 0:
         #Save the positions
         saved_particles_positions.append(particles_new_positions)
+        saved_particles_velocity.append(list(particles_new_velocity))
+
         saved_times.append(current_t)
     
     
@@ -634,11 +681,25 @@ while current_t < t_end:
 ### Plotting ###
 ################
 
+#Analytical solution
+analytical_fastest_position_y_float = (ymax-ymin)/4
+analytical_fastest_velocity_x = v_max*(np.sin(2*np.pi/(ymax-ymin)*analytical_fastest_position_y_float))
+analytical_fastest_position_x = [(xmax-xmin)/2]
+for i in range(1, len(saved_times)):
+    analytical_fastest_position_x_new_pos = analytical_fastest_position_x[-1] + dt*analytical_fastest_velocity_x
+    analytical_fastest_position_x.append(position_periodic_float_fun(analytical_fastest_position_x_new_pos, xmax))
+
+analytical_fastest_position_y = analytical_fastest_position_y_float*np.ones(len(analytical_fastest_position_x))
+
+
+
 saved_particles_positions_np = np.array(saved_particles_positions)
 
 fig, ax = plt.subplots(figsize=(10,6))
 
 im = ax.scatter(saved_particles_positions_np[0, :, 0], saved_particles_positions_np[0, :, 1], s=2)
+
+im = ax.scatter(analytical_fastest_position_x[0], analytical_fastest_position_y[0], s=5, color='red', marker='+')
 
 ax.set_xlim(xmin, xmax)
 ax.set_ylim(ymin, ymax)
@@ -650,6 +711,9 @@ def animate(i):
     ax.clear()
 
     im1 = ax.scatter(saved_particles_positions_np[i, :, 0], saved_particles_positions_np[i, :, 1], s=2)
+
+    im1 = ax.scatter(analytical_fastest_position_x[i], analytical_fastest_position_y[i], s=5, color='red', marker='+')
+
 
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
@@ -667,7 +731,32 @@ plt.show()
 
 
 
-##################
-### Plot E_kin ###
-##################
+##############
+### Plot v ###
+##############
+
+print(saved_particles_velocity)
+saved_particles_velocity_np = np.array(saved_particles_velocity)
+
+saved_particles_velocity_x_row_0 = saved_particles_velocity_np[:,0,0]
+x_row_0 = particles_position_0_y[0]
+
+saved_particles_velocity_x_row_1 = saved_particles_velocity_np[:, N_x,0]
+x_row_1 = particles_position_0_y[1]
+
+saved_particles_velocity_x_row_2 = saved_particles_velocity_np[:, 2*N_x,0]
+x_row_2 = particles_position_0_y[2]
+
+fig, ax = plt.subplots(figsize=(10,6))
+
+ax.plot(saved_times, saved_particles_velocity_x_row_0, label=str(x_row_0))
+ax.plot(saved_times, saved_particles_velocity_x_row_1, label=str(x_row_1))
+ax.plot(saved_times, saved_particles_velocity_x_row_2, label=str(x_row_2))
+
+ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max, linestyle=':', label=r'v_{0}')
+
+plt.legend()
+
+fig.tight_layout()
+plt.show()
 
