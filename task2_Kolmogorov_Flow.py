@@ -93,7 +93,6 @@ dt = 10**(-4)
 dt = 10**(-6)
 
 
-
 #Time end of the simulation
 t_end = 3*dt*10**(1)
 
@@ -560,6 +559,8 @@ saved_particles_velocity = [particles_velocity_0]
 
 
 
+order_dt = math.floor(math.log(dt, 10))
+
 ##########################
 ### Calculate Reynolds ###
 ##########################
@@ -665,7 +666,7 @@ while current_t < t_end:
         saved_particles_positions.append(particles_new_positions)
         saved_particles_velocity.append(particles_new_velocity)
 
-        saved_times.append(current_t)
+        saved_times.append(round(current_t, -order_dt))
     
     
     #Print progress
@@ -680,6 +681,11 @@ while current_t < t_end:
 ################
 ### Plotting ###
 ################
+
+#Okabe and Ito colorlist
+colors_list = [(0, 158/255, 155/255), (0, 114/255, 178/255), (86/255, 180/255, 233/255), (240/255, 228/255, 66/255), (230/255, 159/255, 0), (213/255, 94/255, 0/255), (204/255, 121/255, 167/255)]
+
+
 
 #Analytical solution
 analytical_fastest_position_y_float = (ymax-ymin)/4
@@ -697,43 +703,74 @@ saved_particles_positions_np = np.array(saved_particles_positions)
 
 fig, ax = plt.subplots(figsize=(10,6))
 
-im = ax.scatter(saved_particles_positions_np[0, :, 0], saved_particles_positions_np[0, :, 1], s=2)
+#Text for time
+#time_text = ax.text(0.02, 0.95, '', transform=ax.transAxes)
+#time_text.set_text('time = %.1f' % saved_times[0])
 
-im = ax.scatter(analytical_fastest_position_x[0], analytical_fastest_position_y[0], s=5, color='red', marker='+')
+time_text = ax.text(0.02, 0.975, 'time = ' + str(saved_times[0]), transform=ax.transAxes)
+
+
+im = ax.scatter(saved_particles_positions_np[0, :, 0], saved_particles_positions_np[0, :, 1], s=2, color=colors_list[0], label='Simulation')
+
+im = ax.scatter(analytical_fastest_position_x[0], analytical_fastest_position_y[0], s=5, color=colors_list[2], marker='s', label='Analytical')
 
 ax.set_xlim(xmin, xmax)
 ax.set_ylim(ymin, ymax)
 
-ax.set_title(str("Time = "+ str(saved_times[0])))
+#ax.set_title(str("SPH Kolmogorov flow at time = "+ str(saved_times[0])))
+ax.set_title(str("SPH Kolmogorov flow"))
 
+
+ax.set_aspect('equal')  # so it looks like a square
+
+
+ax.legend(loc='upper right')
 
 def animate(i):
     ax.clear()
 
-    im1 = ax.scatter(saved_particles_positions_np[i, :, 0], saved_particles_positions_np[i, :, 1], s=2)
+    #time_text.set_text('time = %.1f' % saved_times[i])
+    time_text = ax.text(0.02, 0.975, 'time = ' + str(saved_times[i]), transform=ax.transAxes)
 
-    im1 = ax.scatter(analytical_fastest_position_x[i], analytical_fastest_position_y[i], s=5, color='red', marker='+')
+    im1 = ax.scatter(saved_particles_positions_np[i, :, 0], saved_particles_positions_np[i, :, 1], s=2, label='Simulation')
+
+    im1 = ax.scatter(analytical_fastest_position_x[i], analytical_fastest_position_y[i], s=5, color='red', marker='s', label='Analytical')
 
 
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
 
-    ax.set_title(str("Time =" + str(saved_times[i])))
+    #ax.set_title(str("SPH Kolmogorov flow at time =" + str(saved_times[i])))
 
-    ax.set_aspect('equal')  # Important to preserve the circular shape
+    ax.set_title(str("SPH Kolmogorov flow"))
 
+
+    ax.set_aspect('equal')  # so it looks like a square
+
+
+    ax.legend(loc='upper right')
 
 
 ani = animation.FuncAnimation(fig, animate, len(saved_particles_positions_np), interval=10, blit=False)
+
 
 fig.tight_layout()
 plt.show()
 
 
+save_animation_boolean = False
+if save_animation_boolean:
+    # saving to m4 using ffmpeg writer
+    writervideo = animation.FFMpegWriter(fps=30)
+
+    #For pi/3 and N=30
+    ani.save('animation_kolmogorov_N_'+str(N)+'.mp4', writer=writervideo)
+
 
 ##############
 ### Plot v ###
 ##############
+
 
 saved_particles_velocity_np = np.array(saved_particles_velocity)
 
@@ -748,17 +785,17 @@ x_row_2 = particles_position_0_y[2]
 
 fig, ax = plt.subplots(figsize=(10,6))
 
-ax.plot(saved_times, saved_particles_velocity_x_row_0, label=str(x_row_0))
-ax.plot(saved_times, saved_particles_velocity_x_row_1, label=str(x_row_1))
-ax.plot(saved_times, saved_particles_velocity_x_row_2, label=str(x_row_2))
+ax.plot(saved_times, saved_particles_velocity_x_row_0, color=colors_list[0], label=str(round(x_row_0,3)))
+ax.plot(saved_times, saved_particles_velocity_x_row_1, color=colors_list[len(colors_list)//2], label=str(round(x_row_1,3)))
+ax.plot(saved_times, saved_particles_velocity_x_row_2, color=colors_list[-1], label=str(round(x_row_2,3)))
 
 
-ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_0), linestyle=':', label=r'v at '+str(x_row_0))
-ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_1), linestyle=':', label=r'v at '+str(x_row_1))
-ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_2), linestyle=':', label=r'v at '+str(x_row_2))
+ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_0), linestyle=':', colors='black', label=r'v at '+str(round(x_row_0,3)))
+ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_1), linestyle=':', colors='black',  label=r'v at '+str(round(x_row_1, 3)))
+ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max*np.sin(2*np.pi/(xmax-xmin)*x_row_2), linestyle=':', colors='black', label=r'v at '+str(round(x_row_2, 3)))
 
 
-ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max, linestyle=':', label=r'v_{0}')
+#ax.hlines(xmin = np.min(saved_times), xmax = np.max(saved_times), y= v_max, linestyle=':', colors='red', label=r'v_{0}')
 
 plt.legend()
 
@@ -766,7 +803,11 @@ plt.legend()
 ax.set_xlabel('Time')
 ax.set_ylabel('Velocity')
 
+ax.set_title('The velocity field')
+
 fig.tight_layout()
+plt.savefig('task2_velocity_plot.png')
+
 plt.show()
 
 
@@ -797,30 +838,35 @@ for time_iter in range(len(saved_particles_velocity)):
     
 fig, ax = plt.subplots(figsize=(10,6))
 
-ax.plot(saved_times, E_kin)
+ax.plot(saved_times, E_kin, color=colors_list[0])
 
 ax.set_xlabel('Time')
 ax.set_ylabel('Energy')
 
-ax.set_title(r'Total Kinetic Energy}')
+ax.set_title(r'Total Kinetic Energy')
 
-plt.legend()
+#plt.legend()
 
 fig.tight_layout()
+plt.savefig('task2_total_energy_plot.png')
 plt.show()
+
 
 
 
 fig, ax = plt.subplots(figsize=(10,6))
 
-ax.plot(saved_times, E_kin_per_part)
+ax.plot(saved_times, E_kin_per_part, color=colors_list[1])
 
 ax.set_xlabel('Time')
 ax.set_ylabel('Energy')
 
 ax.set_title('Mean Kinetic Energy')
 
-plt.legend()
+#plt.legend()
 
 fig.tight_layout()
+plt.savefig('task2_mean_energy_plot.png')
+
 plt.show()
+
